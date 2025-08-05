@@ -1,0 +1,13 @@
+{
+  "name": "troncell",
+  "version": "0.0.1",
+  "description": "TRON Cell is a all-in one TRON resources manager, leveraging substreams for contract automation",
+  "main": "index.js",
+  "author": "simbadMarino <cctechmx@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^17.2.1",
+    "tronbox": "^4.2.2",
+    "tronweb": "^6.0.4"
+  }
+}
