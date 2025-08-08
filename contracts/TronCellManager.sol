@@ -1,6 +1,5 @@
 //SPDX-License-Identifier: MIT
 pragma solidity 0.8.23;
-import "./Stake2.0ApiStub.sol";
 
 /*
 TRON  TRON Cell Manager Contract (TCMC) requirements:
@@ -31,7 +30,7 @@ TO-DO:
 
 */
 
-contract TronCellManager is TVM_Solidity_API {
+contract TronCellManager {
     address internal owner;
     uint256 public energyPerTRX;
     uint256 public netPerTRX;
