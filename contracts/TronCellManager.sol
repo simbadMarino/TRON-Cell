@@ -1,5 +1,6 @@
 //SPDX-License-Identifier: MIT
 pragma solidity 0.8.23;
+import "./Stake2.0ApiStub.sol";
 
 /*
 TRON  TRON Cell Manager Contract (TCMC) requirements:
@@ -30,7 +31,7 @@ TO-DO:
 
 */
 
-contract TronCellManager {
+contract TronCellManager is TVM_Solidity_API {
     address internal owner;
     uint256 public energyPerTRX;
     uint256 public netPerTRX;
@@ -90,31 +91,41 @@ contract TronCellManager {
         return to.resourceV2(from, resourceType);
     }
 
+    /**
+     * @notice Delegate Resource in Resource units
+     * @param amountInRes Amount of resource to be delegated
+     * @param resourceType Energy: 1  Bandwidth: 0
+     * @param delegateTo to address
+     */
     function delegateResource(
-        uint amountInEnergy,
+        uint amountInRes,
         uint8 resourceType, //Energy: 1 , Bandwidth: 0
         address payable delegateTo
-    ) external {
-        if (amountInEnergy == 0 && energyPerTRX == 0)
+    ) public {
+        if (amountInRes == 0 && energyPerTRX == 0 && netPerTRX == 0)
             revert InvalidAmountOrPriceNotInitialized();
         if (resourceType > 1) revert InvalidResourceType(resourceType); //If Wrong input by user revert
         uint amountInTRX;
         unchecked {
-            amountInTRX = amountInEnergy * energyPerTRX;
+            if (resourceType == 1) {
+                amountInTRX = amountInRes * energyPerTRX;
+            } else if (resourceType == 0) {
+                amountInTRX = amountInRes * netPerTRX;
+            }
         }
 
         delegateTo.delegateResource(amountInTRX, resourceType);
         emit ResourceDelegated(
             msg.sender,
             delegateTo,
-            amountInEnergy,
+            amountInRes,
             resourceType,
             block.timestamp
         );
     }
 
     function quickEnergyDelegation(address payable delegateTo) external {
-        delegateTo.delegateResource(66000000000, 1); //Energy: 1 , Bandwidth: 0
+        delegateResource(5000000, 1, delegateTo);
         emit ResourceDelegated(
             msg.sender,
             delegateTo,
@@ -171,7 +182,10 @@ contract TronCellManager {
         emit withdrawnBalance(owner, amount);
     }
 
-    function getChainParameters()
+    /**
+     * @notice  Get Chain parameters , remove to reduce deployment cost for now
+     */
+    /*function getChainParameters()
         public
         view
         returns (uint, uint, uint, uint, uint)
@@ -183,8 +197,11 @@ contract TronCellManager {
             chain.totalEnergyWeight,
             chain.unfreezeDelayDays
         );
-    }
+    }*/
 
+    /**
+     * @notice  Calculate the Energy per TRX ratio considering current Network conditions
+     */
     function calculateEnergyPerTRX() public returns (uint) {
         energyPerTRX =
             (chain.totalEnergyCurrentLimit * 1_000_000) /
@@ -193,18 +210,26 @@ contract TronCellManager {
         return (energyPerTRX);
     }
 
+    /**
+     * @notice  Calculate the Bandwidth per TRX ratio considering current Network conditions
+     */
     function calculateNetPerTRX() public returns (uint) {
         netPerTRX = (chain.totalNetLimit * 1_000_000) / chain.totalNetWeight;
         emit ResourcePerTRXEvent(netPerTRX);
         return (netPerTRX);
     }
 
+    /**
+     * @notice cancel all pending unstaking requests. Before calling selfdestruct(address) to destroy the contract, should cancel all pending unstaking requests, otherwise, the contract cannot be destroyed.
+     */
     function cancelUnfreeze() external {
         cancelallunfreezev2();
         emit AllUnFreezeV2Canceled();
     }
 
-    // withdraw unfrozen TRX
+    /**
+     * @notice withdraw unfrozen TRX, the user can call this API to withdraw funds to account after executing unfreezeBalanceV2 transaction and waiting N days, N is a network parameter.
+     */
     function withdrawExpireUnfreeze() external {
         uint256 amount = withdrawexpireunfreeze();
         emit ExpireUnfreezeWithdrew(amount);
